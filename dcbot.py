@@ -64,10 +64,32 @@ async def runs(ctx):
     #    print(f'Creating a new channel: {channel_name}')
     #    await guild.create_text_channel(channel_name)
     print(f"{ctx.author} asked for {ctx.message.content} on chan {ctx.channel} of {ctx.guild}")
+    accounts = {}
+    with open('accounts_list', 'r') as facc:
+        accounts = json.load(facc)
+
+    if not accounts.get(ctx.author.id):
+        await ctx.send("Account not registered. Please use !ss YourSSaccountID to register. Exple : `!ss 76561197964179685` ")
+        return
+
+    ssacc = accounts.get(ctx.author.id) 
+
+    runs_dir = f"../BSDlogs/{ssacc}"
+
+    try:
+        runs = os.listdir(runs_dir)
+    except FileNotFoundError:
+        await ctx.send("No runs saved for this account")
+        return
+
+    if not runs:
+        await ctx.send("No runs saved for this account")
+        return
+
     print("Starting to get all runs")
     await ctx.send("Starting to process all runs, please wait...")
 
-    topacc_return = subprocess.run(["python3", "../ssapi/topAcc/top_accu.py"], capture_output=True, text=True)
+    topacc_return = subprocess.run(["python3", "../bsdlp/parse_logs.py", "-d", f"{runs_dir}", "-c", "True"], capture_output=True, text=True)
     print(topacc_return.stdout)
     for message in paginate(topacc_return.stdout):
         msg_to_send = ''.join(message)
@@ -81,10 +103,10 @@ async def ss(ctx, ssa):
         return
     
     accounts = {}
-    with open('accounts', 'r') as facc:
+    with open('accounts_list', 'r') as facc:
         accounts = json.load(facc)
 
-    if accounts.get(ctx.author):
+    if accounts.get(ctx.author.id):
         await ctx.send("Nice (re)try but account already registered")
         return
 
@@ -97,12 +119,13 @@ async def ss(ctx, ssa):
         await ctx.send("Invalid SS account")
         return
 
-    accounts[ctx.author] = req.json()['playerInfo']['playerId']
+    accounts[ctx.author.id] = req.json()['playerInfo']['playerId']
+    print(accounts)
 
-    with open('accounts', 'w') as facc:
+    with open('accounts_list', 'w') as facc:
         json.dump(accounts, facc)
 
-    await ctx.send("Account correctly registered \\o/")
+    await ctx.send("Account correctly registered :+1:")
 
 @bot.event
 async def on_command_error(ctx, error):
