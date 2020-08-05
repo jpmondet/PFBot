@@ -2,6 +2,13 @@
 
 #! /usr/bin/env python3
 
+#TODO: add markdown formatting
+#TODO: remove unnecessary infos
+#TODO: Offer different versions of the output
+#TODO: Add unregister command
+#TODO: On registering : check if ssAccount is also already used
+#TODO: Add command to list runs
+#TODO: Add command to choose 1 specific run
 
 import os
 import json
