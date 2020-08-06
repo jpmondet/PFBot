@@ -75,11 +75,14 @@ async def runs(ctx):
     with open('accounts_list', 'r') as facc:
         accounts = json.load(facc)
 
-    if not accounts.get(ctx.author.id):
+    print(accounts)
+    print(ctx.author.id)
+
+    if not accounts.get(str(ctx.author.id)):
         await ctx.send("Account not registered. Please use !ss YourSSaccountID to register. Exple : `!ss 76561197964179685` ")
         return
 
-    ssacc = accounts.get(ctx.author.id) 
+    ssacc = accounts.get(str(ctx.author.id))
 
     runs_dir = f"../BSDlogs/{ssacc}"
 
@@ -96,7 +99,7 @@ async def runs(ctx):
     print("Starting to get all runs")
     await ctx.send("Starting to process all runs, please wait...")
 
-    topacc_return = subprocess.run(["python3", "../bsdlp/parse_logs.py", "-d", f"{runs_dir}", "-c", "True"], capture_output=True, text=True)
+    topacc_return = subprocess.run(["python3", "../bsdlp/parse_logs.py", "-d", f"{runs_dir}", "-c", "True", "-nc", "True"], capture_output=True, text=True)
     print(topacc_return.stdout)
     for message in paginate(topacc_return.stdout):
         msg_to_send = ''.join(message)
@@ -113,7 +116,9 @@ async def ss(ctx, ssa):
     with open('accounts_list', 'r') as facc:
         accounts = json.load(facc)
 
-    if accounts.get(ctx.author.id):
+    print(accounts)
+    print(ctx.author.id)
+    if accounts.get(str(ctx.author.id)):
         await ctx.send("Nice (re)try but account already registered")
         return
 
@@ -126,7 +131,7 @@ async def ss(ctx, ssa):
         await ctx.send("Invalid SS account")
         return
 
-    accounts[ctx.author.id] = req.json()['playerInfo']['playerId']
+    accounts[str(ctx.author.id)] = req.json()['playerInfo']['playerId']
     print(accounts)
 
     with open('accounts_list', 'w') as facc:
