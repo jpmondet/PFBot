@@ -109,8 +109,12 @@ async def list_runs(ctx):
         return
 
     await ctx.send("Here are your save runs : ")
+    output = ""
     for run in runs:
-        await ctx.send(run)
+        output += f"{run} \n"
+    
+    for message in paginate(output):
+        msg_to_send = ''.join(message)
 
 
 @bot.command(name='runs', help='Process and returns details from all your runs')
