@@ -25,6 +25,7 @@ TOKEN = os.getenv("DISCORD_TOKEN")
 GUILD = os.getenv('DISCORD_GUILD')
 
 ssurl = "https://new.scoresaber.com/api/player/{}/full"
+bsd_logs_dir = "../BSDlogs/"
 
 
 bot = commands.Bot(command_prefix='!')
@@ -75,6 +76,7 @@ async def topAcc(ctx): #, nb_to_show: int = 50):
     print(topacc_return.stdout)
     for message in paginate(topacc_return.stdout):
         msg_to_send = ''.join(message)
+        await ctx.send(msg_to_send)
 
 @bot.command(name='list-runs', help='List all your runs')
 #@commands.has_role('admin')
@@ -96,7 +98,7 @@ async def list_runs(ctx):
         await ctx.send("Account not registered. Please use !ss YourSSaccountID to register. Exple : `!ss 76561197964179685` ")
         return
 
-    runs_dir = f"../BSDlogs/{ssacc}"
+    runs_dir = f"{bsd_logs_dir}{ssacc}"
 
     try:
         runs = os.listdir(runs_dir)
@@ -115,7 +117,7 @@ async def list_runs(ctx):
     
     for message in paginate(output):
         msg_to_send = ''.join(message)
-
+        await ctx.send(msg_to_send)
 
 @bot.command(name='runs', help='Process and returns details from all your runs')
 #@commands.has_role('admin')
@@ -136,7 +138,7 @@ async def runs(ctx):
         await ctx.send("Account not registered. Please use !ss YourSSaccountID to register. Exple : `!ss 76561197964179685` ")
         return
 
-    runs_dir = f"../BSDlogs/{ssacc}"
+    runs_dir = f"{bsd_logs_dir}{ssacc}"
 
     try:
         runs = os.listdir(runs_dir)
@@ -181,7 +183,7 @@ async def show_run(ctx, run_to_process):
         await ctx.send("Account not registered. Please use !ss YourSSaccountID to register. Exple : `!ss 76561197964179685` ")
         return
 
-    run_file = f"../BSDlogs/{ssacc}/{run_to_process}"
+    run_file = f"{bsd_logs_dir}{ssacc}/{run_to_process}"
 
     if not os.access(run_file, os.R_OK):
         await ctx.send("This run cannot be found. You can check which runs you have with `!runs`")
@@ -267,6 +269,95 @@ async def unlink(ctx):
         json.dump(ss_accounts, fssacc)
 
     await ctx.send("Account correctly unlinked... So sad :crying_cat_face:")
+
+@bot.command(name='list-players', help='List all the players registered')
+@commands.has_role('admin')
+async def list_players(ctx):
+    #guild = ctx.guild
+    #existing_channel = discord.utils.get(guild.channels, name=channel_name)
+    #if not existing_channel:
+    #    print(f'Creating a new channel: {channel_name}')
+    #    await guild.create_text_channel(channel_name)
+    print(f"{ctx.author} asked for {ctx.message.content} on chan {ctx.channel} of {ctx.guild}")
+
+    author = str(ctx.author.id)
+
+    id_accounts, ss_accounts = load_accounts()
+
+    await ctx.send("Players currently registered : ")
+    output = ""
+    for iddisc, ssacc in id_accounts.items():
+        output += f"{iddisc} -> {ssacc} \n"
+    
+    for message in paginate(output):
+        msg_to_send = ''.join(message)
+        await ctx.send(msg_to_send)
+
+
+@bot.command(name='compare', help='Compare runs of 2 players')
+@commands.has_role('admin')
+async def compare(ctx, ssacc1, ssacc2):
+    #guild = ctx.guild
+    #existing_channel = discord.utils.get(guild.channels, name=channel_name)
+    #if not existing_channel:
+    #    print(f'Creating a new channel: {channel_name}')
+    #    await guild.create_text_channel(channel_name)
+    print(f"{ctx.author} asked for {ctx.message.content} on chan {ctx.channel} of {ctx.guild}")
+    author = str(ctx.author.id)
+
+    id_accounts, ss_accounts = load_accounts()
+
+    if ssacc1 not in ss_accounts:
+        await ctx.send(f"Account {ssacc1} not found")
+        return
+
+    if ssacc2 not in ss_accounts:
+        await ctx.send(f"Account {ssacc2} not found")
+        return
+
+    runs_dir_1 = f"{bsd_logs_dir}{ssacc1}"
+    runs_dir_2 = f"{bsd_logs_dir}{ssacc2}"
+
+    try:
+        runs1 = os.listdir(runs_dir_1)
+    except FileNotFoundError:
+        await ctx.send(f"No runs saved for account {ssacc1}")
+        return
+    if not runs1:
+        await ctx.send(f"No runs saved for account {ssacc1}")
+        return
+
+    try:
+        runs2 = os.listdir(runs_dir_2)
+    except FileNotFoundError:
+        await ctx.send(f"No runs saved for account {ssacc2}")
+        return
+    if not runs1:
+        await ctx.send(f"No runs saved for account {ssacc2}")
+        return
+
+    print("Starting to get all runs")
+    await ctx.send("Starting to process all runs, please wait...")
+
+    print("Copying runs to a comparaison directory")
+    #TODO : Use python libs instead of relying on linux cmds...
+    comp_dir = f"{bsd_logs_dir}{ssacc1}-{ssacc2}""
+    output = subprocess.run(["echo", f"{comp_dir}"], capture_output=True, text=True)
+    print(output.stdout)
+    output = subprocess.run(["mkdir", f"{comp_dir}"], capture_output=True, text=True)
+    print(output.stdout)
+    output = subprocess.run(["cp", f"{runs_dir_1}/*", f"{comp_dir}"], capture_output=True, text=True)
+    print(output.stdout)
+    output = subprocess.run(["cp", f"{runs_dir_2}/*", f"{comp_dir}"], capture_output=True, text=True)
+    print(output.stdout)
+
+
+    output = subprocess.run(["python3", "../bsdlp/parse_logs.py", "-d", f"{comp_dir}", "-c", "True", "-nc", "True"], capture_output=True, text=True)
+    print(output.stdout)
+    for message in paginate(output.stdout):
+        msg_to_send = ''.join(message)
+        await ctx.send(msg_to_send)
+
 
 @bot.event
 async def on_command_error(ctx, error):
