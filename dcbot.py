@@ -304,7 +304,15 @@ async def list_saved_players(ctx):
     print(f"{ctx.author} asked for {ctx.message.content} on chan {ctx.channel} of {ctx.guild}")
 
     await ctx.send("Players that have already saved a run :")
-    output = os.listdir(bsd_logs_dir)
+    dirs = os.listdir(bsd_logs_dir)
+
+    output = ""
+    for pdir in dirs:
+        if pdir == 'Unknown':
+            continue
+        if '-' in pdir:
+            continue
+        output += f"{pdir} \n"
     
     for message in paginate(output):
         msg_to_send = ''.join(message)
@@ -325,10 +333,14 @@ async def list_all_runs(ctx):
 
     output = ""
     for pdir in dirs:
+        if pdir == 'Unknown':
+            continue
+        if '-' in pdir:
+            continue
         output += f"**{pdir}** \n"
         pruns = os.listdir(f"{bsd_logs_dir}/{pdir}")
         for prun in pruns:
-            output += "f{prun}\n"
+            output += f"{prun} \n"
     
     for message in paginate(output):
         msg_to_send = ''.join(message)
@@ -444,7 +456,7 @@ async def compare(ctx, ssacc1, ssacc2):
 
 @bot.command(name='compare-specific', help='Compare specific runs of 2 players')
 @commands.has_role('admin')
-async def compare(ctx, ssacc1, ssacc2, run1, run2):
+async def compare_specific(ctx, ssacc1, run1, ssacc2, run2):
     #guild = ctx.guild
     #existing_channel = discord.utils.get(guild.channels, name=channel_name)
     #if not existing_channel:
@@ -453,7 +465,7 @@ async def compare(ctx, ssacc1, ssacc2, run1, run2):
     print(f"{ctx.author} asked for {ctx.message.content} on chan {ctx.channel} of {ctx.guild}")
 
     if not (ssacc1 and ssacc2 and run1 and run2):
-        await ctx.send(f"Please, provide the 2 SS accounts and the 2 runs to compare. Exple : `!compare-specfic 76561197964179685 2020-08-02-19-30-45 76561198084634262 02-08-2020-1596347873`")
+        await ctx.send(f"Please, provide the 2 SS accounts and the 2 runs to compare. Exple : `!compare-specific 76561197964179685 2020-08-02-19-30-45 76561198084634262 02-08-2020-1596347873`")
         return
 
     #author = str(ctx.author.id)
