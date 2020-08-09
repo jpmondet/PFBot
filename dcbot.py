@@ -310,6 +310,64 @@ async def list_saved_players(ctx):
         msg_to_send = ''.join(message)
         await ctx.send(msg_to_send)
 
+@bot.command(name='list-all-runs', help='List all runs saved for all players')
+@commands.has_role('admin')
+async def list_all_runs(ctx):
+    #guild = ctx.guild
+    #existing_channel = discord.utils.get(guild.channels, name=channel_name)
+    #if not existing_channel:
+    #    print(f'Creating a new channel: {channel_name}')
+    #    await guild.create_text_channel(channel_name)
+    print(f"{ctx.author} asked for {ctx.message.content} on chan {ctx.channel} of {ctx.guild}")
+
+    await ctx.send("All runs :")
+    dirs = os.listdir(bsd_logs_dir)
+
+    output = ""
+    for pdir in dirs:
+        output += f"**{pdir}** \n"
+        pruns = os.listdir(f"{bsd_logs_dir}/{pdir}")
+        for prun in pruns:
+            output += "f{prun}\n"
+    
+    for message in paginate(output):
+        msg_to_send = ''.join(message)
+        await ctx.send(msg_to_send)
+
+@bot.command(name='list-runs-of-player', help='List all runs of 1 specific player')
+@commands.has_role('admin')
+async def list_runs_player(ctx, ssacc):
+    #guild = ctx.guild
+    #existing_channel = discord.utils.get(guild.channels, name=channel_name)
+    #if not existing_channel:
+    #    print(f'Creating a new channel: {channel_name}')
+    #    await guild.create_text_channel(channel_name)
+    print(f"{ctx.author} asked for {ctx.message.content} on chan {ctx.channel} of {ctx.guild}")
+
+    if not ssacc:
+        await ctx.send("Please provide the SS account of the player you wanna list runs. Exple : `!list-runs-of-player 76561197964179685` ")
+        return
+
+    runs_dir = f"{bsd_logs_dir}{ssacc}"
+
+    try:
+        runs = os.listdir(runs_dir)
+    except FileNotFoundError:
+        await ctx.send("No runs saved for this account")
+        return
+
+    if not runs:
+        await ctx.send("No runs saved for this account")
+        return
+
+    await ctx.send(f"Here are the saved runs of {ssacc}: ")
+    output = ""
+    for run in runs:
+        output += f"{run} \n"
+    
+    for message in paginate(output):
+        msg_to_send = ''.join(message)
+        await ctx.send(msg_to_send)
 
 @bot.command(name='compare', help='Compare runs of 2 players')
 @commands.has_role('admin')
@@ -320,17 +378,23 @@ async def compare(ctx, ssacc1, ssacc2):
     #    print(f'Creating a new channel: {channel_name}')
     #    await guild.create_text_channel(channel_name)
     print(f"{ctx.author} asked for {ctx.message.content} on chan {ctx.channel} of {ctx.guild}")
-    author = str(ctx.author.id)
 
-    id_accounts, ss_accounts = load_accounts()
-
-    if ssacc1 not in ss_accounts:
-        await ctx.send(f"Account {ssacc1} not found")
+    if not (ssacc1 and ssacc2):
+        await ctx.send(f"Please, provide the 2 SS accounts. Exple : !compare 76561197964179685 76561198084634262")  
         return
 
-    if ssacc2 not in ss_accounts:
-        await ctx.send(f"Account {ssacc2} not found")
-        return
+
+    #author = str(ctx.author.id)
+
+    #id_accounts, ss_accounts = load_accounts()
+
+    #if ssacc1 not in ss_accounts:
+    #    await ctx.send(f"Account {ssacc1} not found")
+    #    return
+
+    #if ssacc2 not in ss_accounts:
+    #    await ctx.send(f"Account {ssacc2} not found")
+    #    return
 
     runs_dir_1 = f"{bsd_logs_dir}{ssacc1}"
     runs_dir_2 = f"{bsd_logs_dir}{ssacc2}"
@@ -359,14 +423,92 @@ async def compare(ctx, ssacc1, ssacc2):
     print("Copying runs to a comparaison directory")
     #TODO : Use python libs instead of relying on linux cmds...
     comp_dir = f"{bsd_logs_dir}{ssacc1}-{ssacc2}"
-    output = subprocess.run(["echo", f"{comp_dir}"], capture_output=True, text=True)
-    print(output.stdout)
+    if os.access(comp_dir, os.R_OK):
+        output = subprocess.run(["rm", "-rf", f"{comp_dir}"], capture_output=True, text=True)
+        print(output.stdout)
     output = subprocess.run(["mkdir", f"{comp_dir}"], capture_output=True, text=True)
     print(output.stdout)
     print("cp", f"{runs_dir_1}/*", f"{comp_dir}")
     output = subprocess.run(f"cp {runs_dir_1}/* {comp_dir}/", shell=True)
     print(output.stdout)
     output = subprocess.run(f"cp {runs_dir_2}/* {comp_dir}/", shell=True)
+    print(output.stdout)
+
+
+    output = subprocess.run(["python3", "../bsdlp/parse_logs.py", "-d", f"{comp_dir}", "-c", "True", "-nc", "True"], capture_output=True, text=True)
+    print(output.stdout)
+    for message in paginate(output.stdout):
+        msg_to_send = ''.join(message)
+        await ctx.send(msg_to_send)
+
+
+@bot.command(name='compare-specific', help='Compare specific runs of 2 players')
+@commands.has_role('admin')
+async def compare(ctx, ssacc1, ssacc2, run1, run2):
+    #guild = ctx.guild
+    #existing_channel = discord.utils.get(guild.channels, name=channel_name)
+    #if not existing_channel:
+    #    print(f'Creating a new channel: {channel_name}')
+    #    await guild.create_text_channel(channel_name)
+    print(f"{ctx.author} asked for {ctx.message.content} on chan {ctx.channel} of {ctx.guild}")
+
+    if not (ssacc1 and ssacc2 and run1 and run2):
+        await ctx.send(f"Please, provide the 2 SS accounts and the 2 runs to compare. Exple : `!compare-specfic 76561197964179685 2020-08-02-19-30-45 76561198084634262 02-08-2020-1596347873`")
+        return
+
+    #author = str(ctx.author.id)
+
+    #id_accounts, ss_accounts = load_accounts()
+
+    #if ssacc1 not in ss_accounts:
+    #    await ctx.send(f"Account {ssacc1} not found")
+    #    return
+
+    #if ssacc2 not in ss_accounts:
+    #    await ctx.send(f"Account {ssacc2} not found")
+    #    return
+
+    runs_dir_1 = f"{bsd_logs_dir}{ssacc1}"
+    runs_dir_2 = f"{bsd_logs_dir}{ssacc2}"
+
+    try:
+        runs1 = os.listdir(runs_dir_1)
+    except FileNotFoundError:
+        await ctx.send(f"No runs saved for account {ssacc1}")
+        return
+    if not runs1:
+        await ctx.send(f"No runs saved for account {ssacc1}")
+        return
+    if run1 not in runs1:
+        await ctx.send(f"The run {run1} wasn't found for {ssacc1}")
+        return
+
+    try:
+        runs2 = os.listdir(runs_dir_2)
+    except FileNotFoundError:
+        await ctx.send(f"No runs saved for account {ssacc2}")
+        return
+    if not runs1:
+        await ctx.send(f"No runs saved for account {ssacc2}")
+        return
+    if run2 not in runs2:
+        await ctx.send(f"The run {run2} wasn't found for {ssacc2}")
+        return
+
+    print("Starting to compare the 2 runs")
+    await ctx.send("Starting to process the comparison of the 2 runs, please wait...")
+
+    print("Copying runs to a comparaison directory")
+    #TODO : Use python libs instead of relying on linux cmds...
+    comp_dir = f"{bsd_logs_dir}{ssacc1}-{ssacc2}"
+    if os.access(comp_dir, os.R_OK):
+        output = subprocess.run(["rm", "-rf", f"{comp_dir}"], capture_output=True, text=True)
+        print(output.stdout)
+    output = subprocess.run(["mkdir", f"{comp_dir}"], capture_output=True, text=True)
+    print(output.stdout)
+    output = subprocess.run(f"cp {runs_dir_1}/{run1} {comp_dir}/", shell=True)
+    print(output.stdout)
+    output = subprocess.run(f"cp {runs_dir_2}/{run2} {comp_dir}/", shell=True)
     print(output.stdout)
 
 
