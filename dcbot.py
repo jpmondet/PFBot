@@ -197,8 +197,8 @@ async def show_run(ctx, run_to_process):
         msg_to_send = ''.join(message)
         await ctx.send(msg_to_send)
 
-@bot.command(name='ss', help='Register with your SS account')
-async def ss(ctx, ssa):
+@bot.command(name='link', help='Register with your SS account')
+async def link(ctx, ssa):
     print(f"{ctx.author} asked for {ctx.message.content} on chan {ctx.channel} of {ctx.guild}")
     if not ssa:
         await ctx.send("Please, indicate your SS account. For example `!ss 76561197964179685`")
@@ -288,6 +288,23 @@ async def list_players(ctx):
     output = ""
     for iddisc, ssacc in id_accounts.items():
         output += f"{iddisc} -> {ssacc} \n"
+    
+    for message in paginate(output):
+        msg_to_send = ''.join(message)
+        await ctx.send(msg_to_send)
+
+@bot.command(name='list-players-with-saved-runs', help='List all the players that already saved runs (even those that arent registered anymore')
+@commands.has_role('admin')
+async def list_saved_players(ctx):
+    #guild = ctx.guild
+    #existing_channel = discord.utils.get(guild.channels, name=channel_name)
+    #if not existing_channel:
+    #    print(f'Creating a new channel: {channel_name}')
+    #    await guild.create_text_channel(channel_name)
+    print(f"{ctx.author} asked for {ctx.message.content} on chan {ctx.channel} of {ctx.guild}")
+
+    await ctx.send("Players that have already saved a run :")
+    output = os.listdir(bsd_logs_dir)
     
     for message in paginate(output):
         msg_to_send = ''.join(message)
