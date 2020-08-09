@@ -341,14 +341,15 @@ async def compare(ctx, ssacc1, ssacc2):
 
     print("Copying runs to a comparaison directory")
     #TODO : Use python libs instead of relying on linux cmds...
-    comp_dir = f"{bsd_logs_dir}{ssacc1}-{ssacc2}""
+    comp_dir = f"{bsd_logs_dir}{ssacc1}-{ssacc2}"
     output = subprocess.run(["echo", f"{comp_dir}"], capture_output=True, text=True)
     print(output.stdout)
     output = subprocess.run(["mkdir", f"{comp_dir}"], capture_output=True, text=True)
     print(output.stdout)
-    output = subprocess.run(["cp", f"{runs_dir_1}/*", f"{comp_dir}"], capture_output=True, text=True)
+    print("cp", f"{runs_dir_1}/*", f"{comp_dir}")
+    output = subprocess.run(f"cp {runs_dir_1}/* {comp_dir}/", shell=True)
     print(output.stdout)
-    output = subprocess.run(["cp", f"{runs_dir_2}/*", f"{comp_dir}"], capture_output=True, text=True)
+    output = subprocess.run(f"cp {runs_dir_2}/* {comp_dir}/", shell=True)
     print(output.stdout)
 
 
