@@ -2,17 +2,13 @@
 
 #! /usr/bin/env python3
 
-#TODO: add markdown formatting
+#TODO: Improve markdown formatting
 #TODO: remove unnecessary infos
 #TODO: Offer different versions of the output
-#TODO: Add unregister command
-#TODO: On registering : check if ssAccount is also already used
-#TODO: Add command to list runs
-#TODO: Add command to choose 1 specific run
 
 import os
-import json
 import subprocess
+import json
 import requests
 import discord
 from discord.ext import commands
@@ -24,13 +20,13 @@ load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
 GUILD = os.getenv('DISCORD_GUILD')
 
-ssurl = "https://new.scoresaber.com/api/player/{}/full"
-bsd_logs_dir = "../BSDlogs/"
+SSURL = "https://new.scoresaber.com/api/player/{}/full"
+BSD_LOGS_DIR = "../BSDlogs/"
 
-
-bot = commands.Bot(command_prefix='!')
+# UTILS (NON-BOT FUNCTIONS)
 
 def load_accounts():
+    """ Loads registered discord ids & ss accs from files and return the associated dicts """
     id_accounts = {}
     ss_accounts = {}
 
@@ -42,10 +38,11 @@ def load_accounts():
     return id_accounts, ss_accounts
 
 def check_and_get_ss_account(discord_id):
+    """ Not Implemented Yet"""
     pass
 
-
 def paginate(lines, chars=2000):
+    """ Paginate long outputs since discord limits to 2000 chars... """
     size = 0
     message = []
     for line in lines:
@@ -57,19 +54,34 @@ def paginate(lines, chars=2000):
         size += len(line)
     yield message
 
+async def record_usage(ctx):
+    print(f"{ctx.author} asked for {ctx.message.content} on chan {ctx.channel} of {ctx.guild} at {ctx.message.created_at}")
+
+# BOT FUNCTIONS START HERE
+bot = commands.Bot(command_prefix='!')
+
 @bot.event
 async def on_ready():
     print(f'{bot.user.name} has connected to Discord and ready to get cmds')
 
-@bot.command(name='topAcc', help='Shows the current top50 of Average Ranked Accuracy')
-#@commands.has_role('admin')
+@bot.event
+async def on_command_error(ctx, error):
+    if isinstance(error, commands.errors.CheckFailure):
+        await ctx.send('You do not have the correct role for this command.')
+    if isinstance(error, commands.errors.CommandOnCooldown):
+        await ctx.send("Please, don't spam this command since SS rate-limits us. You'll be able to do this command again in 60sec")
+    if isinstance(error, commands.errors.NoPrivateMessage):
+        await ctx.send("Sorry, this command is not available in DMs.")
+        
+@bot.command(name='topAcc', help='Shows the current top15 of Average Ranked Accuracy \n (Limiting the use to once every 60 secs since SS rate-limits us a lot... >_<)')
+@commands.before_invoke(record_usage)
+@commands.cooldown(1, 60)
 async def topAcc(ctx): #, nb_to_show: int = 50):
     #guild = ctx.guild
     #existing_channel = discord.utils.get(guild.channels, name=channel_name)
     #if not existing_channel:
     #    print(f'Creating a new channel: {channel_name}')
     #    await guild.create_text_channel(channel_name)
-    print(f"{ctx.author} asked for {ctx.message.content} on chan {ctx.channel} of {ctx.guild}")
     print("Starting to generate Acc leaderboard")
     await ctx.send("Starting to generate Acc leaderboard, please wait...(thanks Umbranox for rate-limiting)")
     topacc_return = subprocess.run(["python3", "../ssapi/topAcc/top_accu.py"], capture_output=True, text=True)
@@ -79,14 +91,8 @@ async def topAcc(ctx): #, nb_to_show: int = 50):
         await ctx.send(msg_to_send)
 
 @bot.command(name='list-runs', help='List all your runs')
-#@commands.has_role('admin')
+@commands.before_invoke(record_usage)
 async def list_runs(ctx):
-    #guild = ctx.guild
-    #existing_channel = discord.utils.get(guild.channels, name=channel_name)
-    #if not existing_channel:
-    #    print(f'Creating a new channel: {channel_name}')
-    #    await guild.create_text_channel(channel_name)
-    print(f"{ctx.author} asked for {ctx.message.content} on chan {ctx.channel} of {ctx.guild}")
 
     author = str(ctx.author.id)
 
@@ -95,10 +101,10 @@ async def list_runs(ctx):
     ssacc = id_accounts.get(author)
 
     if not ssacc:
-        await ctx.send("Account not registered. Please use !ss YourSSaccountID to register. Exple : `!ss 76561197964179685` ")
+        await ctx.send("Account not registered. Please use !link YourSSaccountID to register. Exple : `!link 76561197964179685` ")
         return
 
-    runs_dir = f"{bsd_logs_dir}{ssacc}"
+    runs_dir = f"{BSD_LOGS_DIR}{ssacc}"
 
     try:
         runs = os.listdir(runs_dir)
@@ -120,14 +126,9 @@ async def list_runs(ctx):
         await ctx.send(msg_to_send)
 
 @bot.command(name='runs', help='Process and returns details from all your runs')
-#@commands.has_role('admin')
+@commands.before_invoke(record_usage)
 async def runs(ctx):
-    #guild = ctx.guild
-    #existing_channel = discord.utils.get(guild.channels, name=channel_name)
-    #if not existing_channel:
-    #    print(f'Creating a new channel: {channel_name}')
-    #    await guild.create_text_channel(channel_name)
-    print(f"{ctx.author} asked for {ctx.message.content} on chan {ctx.channel} of {ctx.guild}")
+
     author = str(ctx.author.id)
 
     id_accounts, ss_accounts = load_accounts()
@@ -135,10 +136,10 @@ async def runs(ctx):
     ssacc = id_accounts.get(author)
 
     if not ssacc:
-        await ctx.send("Account not registered. Please use !ss YourSSaccountID to register. Exple : `!ss 76561197964179685` ")
+        await ctx.send("Account not registered. Please use !link YourSSaccountID to register. Exple : `!link 76561197964179685` ")
         return
 
-    runs_dir = f"{bsd_logs_dir}{ssacc}"
+    runs_dir = f"{BSD_LOGS_DIR}{ssacc}"
 
     try:
         runs = os.listdir(runs_dir)
@@ -160,14 +161,8 @@ async def runs(ctx):
         await ctx.send(msg_to_send)
 
 @bot.command(name='run', help='Process and returns details from the run you specified')
-#@commands.has_role('admin')
+@commands.before_invoke(record_usage)
 async def show_run(ctx, run_to_process):
-    #guild = ctx.guild
-    #existing_channel = discord.utils.get(guild.channels, name=channel_name)
-    #if not existing_channel:
-    #    print(f'Creating a new channel: {channel_name}')
-    #    await guild.create_text_channel(channel_name)
-    print(f"{ctx.author} asked for {ctx.message.content} on chan {ctx.channel} of {ctx.guild}")
 
     if not run_to_process:
         await ctx.send("Please, indicate which run you want to show. For exple : `!run 2020-08-02-19-30-45`")
@@ -180,10 +175,10 @@ async def show_run(ctx, run_to_process):
     ssacc = id_accounts.get(author)
 
     if not ssacc:
-        await ctx.send("Account not registered. Please use !ss YourSSaccountID to register. Exple : `!ss 76561197964179685` ")
+        await ctx.send("Account not registered. Please use !link YourSSaccountID to register. Exple : `!link 76561197964179685` ")
         return
 
-    run_file = f"{bsd_logs_dir}{ssacc}/{run_to_process}"
+    run_file = f"{BSD_LOGS_DIR}{ssacc}/{run_to_process}"
 
     if not os.access(run_file, os.R_OK):
         await ctx.send("This run cannot be found. You can check which runs you have with `!runs`")
@@ -198,10 +193,11 @@ async def show_run(ctx, run_to_process):
         await ctx.send(msg_to_send)
 
 @bot.command(name='link', help='Register with your SS account')
+@commands.before_invoke(record_usage)
+@commands.guild_only()
 async def link(ctx, ssa):
-    print(f"{ctx.author} asked for {ctx.message.content} on chan {ctx.channel} of {ctx.guild}")
     if not ssa:
-        await ctx.send("Please, indicate your SS account. For example `!ss 76561197964179685`")
+        await ctx.send("Please, indicate your SS account. For example `!link 76561197964179685`")
         return
 
     author = str(ctx.author.id)
@@ -221,10 +217,11 @@ async def link(ctx, ssa):
     
     print("Validating that the account exist")
 
-    req = requests.get(ssurl.format(ssa))
+    req = requests.get(SSURL.format(ssa))
 
     if req.status_code != 200:
-        await ctx.send("Invalid SS account")
+        #TODO : Improve error checking to determine if SS is really dead
+        await ctx.send("Invalid SS account (or SS dead...)")
         return
 
     player_id = req.json()['playerInfo']['playerId']
@@ -242,8 +239,9 @@ async def link(ctx, ssa):
     await ctx.send("Account correctly registered :+1:")
 
 @bot.command(name='unlink', help='Unlink SS account from your discord account')
+@commands.before_invoke(record_usage)
+@commands.guild_only()
 async def unlink(ctx):
-    print(f"{ctx.author} asked for {ctx.message.content} on chan {ctx.channel} of {ctx.guild}")
 
     author = str(ctx.author.id)
 
@@ -272,14 +270,8 @@ async def unlink(ctx):
 
 @bot.command(name='list-players', help='List all the players registered')
 @commands.has_role('admin')
+@commands.before_invoke(record_usage)
 async def list_players(ctx):
-    #guild = ctx.guild
-    #existing_channel = discord.utils.get(guild.channels, name=channel_name)
-    #if not existing_channel:
-    #    print(f'Creating a new channel: {channel_name}')
-    #    await guild.create_text_channel(channel_name)
-    print(f"{ctx.author} asked for {ctx.message.content} on chan {ctx.channel} of {ctx.guild}")
-
     author = str(ctx.author.id)
 
     id_accounts, ss_accounts = load_accounts()
@@ -295,16 +287,11 @@ async def list_players(ctx):
 
 @bot.command(name='list-players-with-saved-runs', help='List all the players that already saved runs (even those that arent registered anymore')
 @commands.has_role('admin')
+@commands.before_invoke(record_usage)
 async def list_saved_players(ctx):
-    #guild = ctx.guild
-    #existing_channel = discord.utils.get(guild.channels, name=channel_name)
-    #if not existing_channel:
-    #    print(f'Creating a new channel: {channel_name}')
-    #    await guild.create_text_channel(channel_name)
-    print(f"{ctx.author} asked for {ctx.message.content} on chan {ctx.channel} of {ctx.guild}")
 
     await ctx.send("Players that have already saved a run :")
-    dirs = os.listdir(bsd_logs_dir)
+    dirs = os.listdir(BSD_LOGS_DIR)
 
     output = ""
     for pdir in dirs:
@@ -320,16 +307,11 @@ async def list_saved_players(ctx):
 
 @bot.command(name='list-all-runs', help='List all runs saved for all players')
 @commands.has_role('admin')
+@commands.before_invoke(record_usage)
 async def list_all_runs(ctx):
-    #guild = ctx.guild
-    #existing_channel = discord.utils.get(guild.channels, name=channel_name)
-    #if not existing_channel:
-    #    print(f'Creating a new channel: {channel_name}')
-    #    await guild.create_text_channel(channel_name)
-    print(f"{ctx.author} asked for {ctx.message.content} on chan {ctx.channel} of {ctx.guild}")
 
     await ctx.send("All runs :")
-    dirs = os.listdir(bsd_logs_dir)
+    dirs = os.listdir(BSD_LOGS_DIR)
 
     output = ""
     for pdir in dirs:
@@ -338,7 +320,7 @@ async def list_all_runs(ctx):
         if '-' in pdir:
             continue
         output += f"**{pdir}** \n"
-        pruns = os.listdir(f"{bsd_logs_dir}/{pdir}")
+        pruns = os.listdir(f"{BSD_LOGS_DIR}/{pdir}")
         for prun in pruns:
             output += f"{prun} \n"
     
@@ -348,19 +330,13 @@ async def list_all_runs(ctx):
 
 @bot.command(name='list-runs-of-player', help='List all runs of 1 specific player')
 @commands.has_role('admin')
+@commands.before_invoke(record_usage)
 async def list_runs_player(ctx, ssacc):
-    #guild = ctx.guild
-    #existing_channel = discord.utils.get(guild.channels, name=channel_name)
-    #if not existing_channel:
-    #    print(f'Creating a new channel: {channel_name}')
-    #    await guild.create_text_channel(channel_name)
-    print(f"{ctx.author} asked for {ctx.message.content} on chan {ctx.channel} of {ctx.guild}")
-
     if not ssacc:
         await ctx.send("Please provide the SS account of the player you wanna list runs. Exple : `!list-runs-of-player 76561197964179685` ")
         return
 
-    runs_dir = f"{bsd_logs_dir}{ssacc}"
+    runs_dir = f"{BSD_LOGS_DIR}{ssacc}"
 
     try:
         runs = os.listdir(runs_dir)
@@ -383,33 +359,27 @@ async def list_runs_player(ctx, ssacc):
 
 @bot.command(name='compare', help='Compare runs of 2 players')
 @commands.has_role('admin')
+@commands.before_invoke(record_usage)
 async def compare(ctx, ssacc1, ssacc2):
-    #guild = ctx.guild
-    #existing_channel = discord.utils.get(guild.channels, name=channel_name)
-    #if not existing_channel:
-    #    print(f'Creating a new channel: {channel_name}')
-    #    await guild.create_text_channel(channel_name)
-    print(f"{ctx.author} asked for {ctx.message.content} on chan {ctx.channel} of {ctx.guild}")
 
     if not (ssacc1 and ssacc2):
         await ctx.send(f"Please, provide the 2 SS accounts. Exple : !compare 76561197964179685 76561198084634262")  
         return
 
+    # Not checking if the account is still registered since we could still have some saved runs from an
+    # unlink account
 
     #author = str(ctx.author.id)
-
     #id_accounts, ss_accounts = load_accounts()
-
     #if ssacc1 not in ss_accounts:
     #    await ctx.send(f"Account {ssacc1} not found")
     #    return
-
     #if ssacc2 not in ss_accounts:
     #    await ctx.send(f"Account {ssacc2} not found")
     #    return
 
-    runs_dir_1 = f"{bsd_logs_dir}{ssacc1}"
-    runs_dir_2 = f"{bsd_logs_dir}{ssacc2}"
+    runs_dir_1 = f"{BSD_LOGS_DIR}{ssacc1}"
+    runs_dir_2 = f"{BSD_LOGS_DIR}{ssacc2}"
 
     try:
         runs1 = os.listdir(runs_dir_1)
@@ -434,7 +404,7 @@ async def compare(ctx, ssacc1, ssacc2):
 
     print("Copying runs to a comparaison directory")
     #TODO : Use python libs instead of relying on linux cmds...
-    comp_dir = f"{bsd_logs_dir}{ssacc1}-{ssacc2}"
+    comp_dir = f"{BSD_LOGS_DIR}{ssacc1}-{ssacc2}"
     if os.access(comp_dir, os.R_OK):
         output = subprocess.run(["rm", "-rf", f"{comp_dir}"], capture_output=True, text=True)
         print(output.stdout)
@@ -446,42 +416,36 @@ async def compare(ctx, ssacc1, ssacc2):
     output = subprocess.run(f"cp {runs_dir_2}/* {comp_dir}/", shell=True)
     print(output.stdout)
 
-
+    print("Start processing the runs")
     output = subprocess.run(["python3", "../bsdlp/parse_logs.py", "-d", f"{comp_dir}", "-c", "True", "-nc", "True"], capture_output=True, text=True)
     print(output.stdout)
     for message in paginate(output.stdout):
         msg_to_send = ''.join(message)
         await ctx.send(msg_to_send)
 
-
 @bot.command(name='compare-specific', help='Compare specific runs of 2 players')
 @commands.has_role('admin')
+@commands.before_invoke(record_usage)
 async def compare_specific(ctx, ssacc1, run1, ssacc2, run2):
-    #guild = ctx.guild
-    #existing_channel = discord.utils.get(guild.channels, name=channel_name)
-    #if not existing_channel:
-    #    print(f'Creating a new channel: {channel_name}')
-    #    await guild.create_text_channel(channel_name)
-    print(f"{ctx.author} asked for {ctx.message.content} on chan {ctx.channel} of {ctx.guild}")
 
     if not (ssacc1 and ssacc2 and run1 and run2):
         await ctx.send(f"Please, provide the 2 SS accounts and the 2 runs to compare. Exple : `!compare-specific 76561197964179685 2020-08-02-19-30-45 76561198084634262 02-08-2020-1596347873`")
         return
 
+    # Not checking if the account is still registered since we could still have some saved runs from an
+    # unlink account
+
     #author = str(ctx.author.id)
-
     #id_accounts, ss_accounts = load_accounts()
-
     #if ssacc1 not in ss_accounts:
     #    await ctx.send(f"Account {ssacc1} not found")
     #    return
-
     #if ssacc2 not in ss_accounts:
     #    await ctx.send(f"Account {ssacc2} not found")
     #    return
 
-    runs_dir_1 = f"{bsd_logs_dir}{ssacc1}"
-    runs_dir_2 = f"{bsd_logs_dir}{ssacc2}"
+    runs_dir_1 = f"{BSD_LOGS_DIR}{ssacc1}"
+    runs_dir_2 = f"{BSD_LOGS_DIR}{ssacc2}"
 
     try:
         runs1 = os.listdir(runs_dir_1)
@@ -512,7 +476,7 @@ async def compare_specific(ctx, ssacc1, run1, ssacc2, run2):
 
     print("Copying runs to a comparaison directory")
     #TODO : Use python libs instead of relying on linux cmds...
-    comp_dir = f"{bsd_logs_dir}{ssacc1}-{ssacc2}"
+    comp_dir = f"{BSD_LOGS_DIR}{ssacc1}-{ssacc2}"
     if os.access(comp_dir, os.R_OK):
         output = subprocess.run(["rm", "-rf", f"{comp_dir}"], capture_output=True, text=True)
         print(output.stdout)
@@ -523,17 +487,11 @@ async def compare_specific(ctx, ssacc1, run1, ssacc2, run2):
     output = subprocess.run(f"cp {runs_dir_2}/{run2} {comp_dir}/", shell=True)
     print(output.stdout)
 
-
+    print("Start processing the runs...")
     output = subprocess.run(["python3", "../bsdlp/parse_logs.py", "-d", f"{comp_dir}", "-c", "True", "-nc", "True"], capture_output=True, text=True)
     print(output.stdout)
     for message in paginate(output.stdout):
         msg_to_send = ''.join(message)
         await ctx.send(msg_to_send)
-
-
-@bot.event
-async def on_command_error(ctx, error):
-    if isinstance(error, commands.errors.CheckFailure):
-        await ctx.send('You do not have the correct role for this command.')
 
 bot.run(TOKEN)
