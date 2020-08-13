@@ -230,7 +230,7 @@ async def link(ctx, ssa):
 
     player_id = req.json()['playerInfo']['playerId']
     id_accounts[author] = player_id
-    ss_accounts[player_id] = author
+    ss_accounts[player_id] = req.json()['playerInfo']['playerName']
     print(id_accounts)
     print(ss_accounts)
 
@@ -283,7 +283,7 @@ async def list_players(ctx):
     await ctx.send("Players currently registered : ")
     output = ""
     for iddisc, ssacc in id_accounts.items():
-        output += f"{iddisc} -> {ssacc} \n"
+        output += f"{iddisc} -> {ssacc} ({ss_accounts[ssacc]})\n"
     
     for message in paginate(output):
         msg_to_send = ''.join(message)
