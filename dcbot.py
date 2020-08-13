@@ -3,6 +3,7 @@
 #! /usr/bin/env python3
 
 #TODO: Improve markdown formatting
+#TODO: Translate SS ID to SS name
 #TODO: remove unnecessary infos
 #TODO: Offer different versions of the output
 
@@ -66,12 +67,15 @@ async def on_ready():
 
 @bot.event
 async def on_command_error(ctx, error):
-    if isinstance(error, commands.errors.CheckFailure):
-        await ctx.send('You do not have the correct role for this command.')
-    if isinstance(error, commands.errors.CommandOnCooldown):
-        await ctx.send("Please, don't spam this command since SS rate-limits us. You'll be able to do this command again in 60sec")
     if isinstance(error, commands.errors.NoPrivateMessage):
         await ctx.send("Sorry, this command is not available in DMs.")
+        return
+    if isinstance(error, commands.errors.CheckFailure):
+        await ctx.send('Sorry, you do not have the correct role for this command.')
+        return
+    if isinstance(error, commands.errors.CommandOnCooldown):
+        await ctx.send("Sorry, because of SS rate-limiting, we have to limit this command to 1 use every 60 seconds...")
+        return
         
 @bot.command(name='topAcc', help='Shows the current top15 of Average Ranked Accuracy \n (Limiting the use to once every 60 secs since SS rate-limits us a lot... >_<)')
 @commands.before_invoke(record_usage)
