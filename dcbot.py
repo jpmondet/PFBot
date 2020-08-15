@@ -3,7 +3,7 @@
 #! /usr/bin/env python3
 
 #TODO: Improve markdown formatting
-#TODO: Translate SS ID to SS name
+#TODO: Translate SS ID to SS name (especially on lists from admin commands)
 #TODO: remove unnecessary infos
 #TODO: Offer different versions of the output
 
@@ -41,6 +41,13 @@ def load_accounts():
 def check_and_get_ss_account(discord_id):
     """ Not Implemented Yet"""
     pass
+
+def get_pname_from_ssid(ssid):
+    req = requests.get(SSURL.format(ssid))
+    if req.status_code != 200:
+        return None
+    else:
+        return req.json()['playerInfo']['playerName']
 
 def paginate(lines, chars=2000):
     """ Paginate long outputs since discord limits to 2000 chars... """
@@ -166,7 +173,7 @@ async def runs(ctx):
 
 @bot.command(name='run', help='Process and returns details from the run you specified')
 @commands.before_invoke(record_usage)
-async def show_run(ctx, run_to_process):
+async def show_run(ctx, run_to_process = ""):
 
     if not run_to_process:
         await ctx.send("Please, indicate which run you want to show. For exple : `!run 2020-08-02-19-30-45`")
@@ -199,7 +206,7 @@ async def show_run(ctx, run_to_process):
 @bot.command(name='link', help='Register with your SS account')
 @commands.before_invoke(record_usage)
 @commands.guild_only()
-async def link(ctx, ssa):
+async def link(ctx, ssa = ""):
     if not ssa:
         await ctx.send("Please, indicate your SS account. For example `!link 76561197964179685`")
         return
@@ -276,8 +283,6 @@ async def unlink(ctx):
 @commands.has_role('admin')
 @commands.before_invoke(record_usage)
 async def list_players(ctx):
-    author = str(ctx.author.id)
-
     id_accounts, ss_accounts = load_accounts()
 
     await ctx.send("Players currently registered : ")
@@ -289,11 +294,12 @@ async def list_players(ctx):
         msg_to_send = ''.join(message)
         await ctx.send(msg_to_send)
 
+
 @bot.command(name='list-players-with-saved-runs', help='List all the players that already saved runs (even those that arent registered anymore')
 @commands.has_role('admin')
 @commands.before_invoke(record_usage)
 async def list_saved_players(ctx):
-
+    id_accounts, ss_accounts = load_accounts()
     await ctx.send("Players that have already saved a run :")
     dirs = os.listdir(BSD_LOGS_DIR)
 
@@ -303,7 +309,14 @@ async def list_saved_players(ctx):
             continue
         if '-' in pdir:
             continue
-        output += f"{pdir} \n"
+        try:
+            pname = ss_accounts[pdir]
+        except KeyError:
+            pname = get_pname_from_ssid(pdir)
+            if not pname:
+                pname = pdir
+
+        output += f"{pname} \n"
     
     for message in paginate(output):
         msg_to_send = ''.join(message)
@@ -313,7 +326,6 @@ async def list_saved_players(ctx):
 @commands.has_role('admin')
 @commands.before_invoke(record_usage)
 async def list_all_runs(ctx):
-
     await ctx.send("All runs :")
     dirs = os.listdir(BSD_LOGS_DIR)
 
@@ -335,7 +347,7 @@ async def list_all_runs(ctx):
 @bot.command(name='list-runs-of-player', help='List all runs of 1 specific player')
 @commands.has_role('admin')
 @commands.before_invoke(record_usage)
-async def list_runs_player(ctx, ssacc):
+async def list_runs_player(ctx, ssacc = ""):
     if not ssacc:
         await ctx.send("Please provide the SS account of the player you wanna list runs. Exple : `!list-runs-of-player 76561197964179685` ")
         return
@@ -364,7 +376,7 @@ async def list_runs_player(ctx, ssacc):
 @bot.command(name='compare', help='Compare runs of 2 players')
 @commands.has_role('admin')
 @commands.before_invoke(record_usage)
-async def compare(ctx, ssacc1, ssacc2):
+async def compare(ctx, ssacc1 = "", ssacc2 = ""):
 
     if not (ssacc1 and ssacc2):
         await ctx.send(f"Please, provide the 2 SS accounts. Exple : !compare 76561197964179685 76561198084634262")  
@@ -430,7 +442,7 @@ async def compare(ctx, ssacc1, ssacc2):
 @bot.command(name='compare-specific', help='Compare specific runs of 2 players')
 @commands.has_role('admin')
 @commands.before_invoke(record_usage)
-async def compare_specific(ctx, ssacc1, run1, ssacc2, run2):
+async def compare_specific(ctx, ssacc1 = "", run1 = "", ssacc2 = "", run2 = ""):
 
     if not (ssacc1 and ssacc2 and run1 and run2):
         await ctx.send(f"Please, provide the 2 SS accounts and the 2 runs to compare. Exple : `!compare-specific 76561197964179685 2020-08-02-19-30-45 76561198084634262 02-08-2020-1596347873`")
