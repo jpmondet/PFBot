@@ -314,9 +314,9 @@ async def list_saved_players(ctx):
         except KeyError:
             pname = get_pname_from_ssid(pdir)
             if not pname:
-                pname = pdir
+                pname = "Name not found"
 
-        output += f"{pname} \n"
+        output += f"{pdir} ({pname}) \n"
     
     for message in paginate(output):
         msg_to_send = ''.join(message)
@@ -326,6 +326,7 @@ async def list_saved_players(ctx):
 @commands.has_role('admin')
 @commands.before_invoke(record_usage)
 async def list_all_runs(ctx):
+    id_accounts, ss_accounts = load_accounts()
     await ctx.send("All runs :")
     dirs = os.listdir(BSD_LOGS_DIR)
 
@@ -335,7 +336,14 @@ async def list_all_runs(ctx):
             continue
         if '-' in pdir:
             continue
-        output += f"**{pdir}** \n"
+        try:
+            pname = ss_accounts[pdir]
+        except KeyError:
+            pname = get_pname_from_ssid(pdir)
+            if not pname:
+                pname = "Name not found"
+
+        output += f"**{pdir} ({pname})** \n"
         pruns = os.listdir(f"{BSD_LOGS_DIR}/{pdir}")
         for prun in pruns:
             output += f"{prun} \n"
@@ -352,6 +360,8 @@ async def list_runs_player(ctx, ssacc = ""):
         await ctx.send("Please provide the SS account of the player you wanna list runs. Exple : `!list-runs-of-player 76561197964179685` ")
         return
 
+    id_accounts, ss_accounts = load_accounts()
+
     runs_dir = f"{BSD_LOGS_DIR}{ssacc}"
 
     try:
@@ -364,7 +374,14 @@ async def list_runs_player(ctx, ssacc = ""):
         await ctx.send("No runs saved for this account")
         return
 
-    await ctx.send(f"Here are the saved runs of {ssacc}: ")
+    try:
+        pname = ss_accounts[ssacc]
+    except KeyError:
+        pname = get_pname_from_ssid(ssacc)
+        if not pname:
+            pname = "Name not found"
+
+    await ctx.send(f"Here are the saved runs of {ssacc} ({pname}): ")
     output = ""
     for run in runs:
         output += f"{run} \n"
