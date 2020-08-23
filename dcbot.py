@@ -3,9 +3,8 @@
 #! /usr/bin/env python3
 
 #TODO: Improve markdown formatting
-#TODO: Translate SS ID to SS name (especially on lists from admin commands)
-#TODO: remove unnecessary infos
-#TODO: Offer different versions of the output
+#TODO: Offer option to show only specific milestone
+#TODO: Allow for roles changes/rankups on specific milestones
 
 import os
 import subprocess
@@ -20,6 +19,7 @@ load_dotenv()
 
 TOKEN = os.getenv("DISCORD_TOKEN")
 GUILD = os.getenv('DISCORD_GUILD')
+ROLE_ADMIN = os.getenv('ROLE_ADMIN')
 
 SSURL = "https://new.scoresaber.com/api/player/{}/full"
 BSD_LOGS_DIR = "../BSDlogs/"
@@ -37,10 +37,6 @@ def load_accounts():
         ss_accounts = json.load(facc)
     
     return id_accounts, ss_accounts
-
-def check_and_get_ss_account(discord_id):
-    """ Not Implemented Yet"""
-    pass
 
 def get_pname_from_ssid(ssid):
     req = requests.get(SSURL.format(ssid))
@@ -280,7 +276,7 @@ async def unlink(ctx):
     await ctx.send("Account correctly unlinked... So sad :crying_cat_face:")
 
 @bot.command(name='list-players', help='List all the players registered')
-@commands.has_role('admin')
+@commands.has_role(ROLE_ADMIN)
 @commands.before_invoke(record_usage)
 async def list_players(ctx):
     id_accounts, ss_accounts = load_accounts()
@@ -296,7 +292,7 @@ async def list_players(ctx):
 
 
 @bot.command(name='list-players-with-saved-runs', help='List all the players that already saved runs (even those that arent registered anymore')
-@commands.has_role('admin')
+@commands.has_role(ROLE_ADMIN)
 @commands.before_invoke(record_usage)
 async def list_saved_players(ctx):
     id_accounts, ss_accounts = load_accounts()
@@ -323,7 +319,7 @@ async def list_saved_players(ctx):
         await ctx.send(msg_to_send)
 
 @bot.command(name='list-all-runs', help='List all runs saved for all players')
-@commands.has_role('admin')
+@commands.has_role(ROLE_ADMIN)
 @commands.before_invoke(record_usage)
 async def list_all_runs(ctx):
     id_accounts, ss_accounts = load_accounts()
@@ -353,7 +349,7 @@ async def list_all_runs(ctx):
         await ctx.send(msg_to_send)
 
 @bot.command(name='list-runs-of-player', help='List all runs of 1 specific player')
-@commands.has_role('admin')
+@commands.has_role(ROLE_ADMIN)
 @commands.before_invoke(record_usage)
 async def list_runs_player(ctx, ssacc = ""):
     if not ssacc:
@@ -391,7 +387,7 @@ async def list_runs_player(ctx, ssacc = ""):
         await ctx.send(msg_to_send)
 
 @bot.command(name='compare', help='Compare runs of 2 players')
-@commands.has_role('admin')
+@commands.has_role(ROLE_ADMIN)
 @commands.before_invoke(record_usage)
 async def compare(ctx, ssacc1 = "", ssacc2 = ""):
 
@@ -457,7 +453,7 @@ async def compare(ctx, ssacc1 = "", ssacc2 = ""):
         await ctx.send(msg_to_send)
 
 @bot.command(name='compare-specific', help='Compare specific runs of 2 players')
-@commands.has_role('admin')
+@commands.has_role(ROLE_ADMIN)
 @commands.before_invoke(record_usage)
 async def compare_specific(ctx, ssacc1 = "", run1 = "", ssacc2 = "", run2 = ""):
 
