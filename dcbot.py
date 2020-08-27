@@ -167,12 +167,12 @@ async def runs(ctx):
         msg_to_send = ''.join(message)
         await ctx.send(msg_to_send)
 
-@bot.command(name='run', help='Process and returns details from the run you specified')
+@bot.command(name='run', help='process and returns details from the run you specified')
 @commands.before_invoke(record_usage)
 async def show_run(ctx, run_to_process = ""):
 
     if not run_to_process:
-        await ctx.send("Please, indicate which run you want to show. For exple : `!run 2020-08-02-19-30-45`")
+        await ctx.send("please, indicate which run you want to show. for exple : `!run 2020-08-02-19-30-45`")
         return
 
     author = str(ctx.author.id)
@@ -182,18 +182,57 @@ async def show_run(ctx, run_to_process = ""):
     ssacc = id_accounts.get(author)
 
     if not ssacc:
-        await ctx.send("Account not registered. Please use !link YourSSaccountID to register. Exple : `!link 76561197964179685` ")
+        await ctx.send("account not registered. please use !link yourssaccountid to register. exple : `!link 76561197964179685` ")
         return
 
     run_file = f"{BSD_LOGS_DIR}{ssacc}/{run_to_process}"
 
     if not os.access(run_file, os.R_OK):
-        await ctx.send("This run cannot be found. You can check which runs you have with `!runs`")
+        await ctx.send("this run cannot be found. you can check which runs you have with `!runs`")
         return
 
-    print(f"Starting to process run {run_file}")
+    print(f"starting to process run {run_file}")
 
-    output = subprocess.run(["python3", "../bsdlp/parse_logs.py", "-f", f"{run_file}", "-c", "True", "-nc", "True"], capture_output=True, text=True)
+    output = subprocess.run(["python3", "../bsdlp/parse_logs.py", "-f", f"{run_file}", "-c", "true", "-nc", "true"], capture_output=True, text=True)
+    print(output.stdout)
+    for message in paginate(output.stdout):
+        msg_to_send = ''.join(message)
+        await ctx.send(msg_to_send)
+
+@bot.command(name='runs-map', help='Get all runs on a specific map')
+@commands.before_invoke(record_usage)
+async def show_runs_map(ctx, map_to_process = ""):
+
+    if not map_to_process:
+        await ctx.send("Please, indicate which map you want to show. for exple : `!runs-map melancholia`")
+        return
+
+    author = str(ctx.author.id)
+
+    id_accounts, ss_accounts = load_accounts()
+
+    ssacc = id_accounts.get(author)
+
+    if not ssacc:
+        await ctx.send("account not registered. please use !link yourssaccountid to register. exple : `!link 76561197964179685` ")
+        return
+
+    runs_dir = f"{BSD_LOGS_DIR}{ssacc}"
+
+    try:
+        runs = os.listdir(runs_dir)
+    except FileNotFoundError:
+        await ctx.send("No runs saved for this account")
+        return
+
+    if not runs:
+        await ctx.send("No runs saved for this account")
+        return
+
+    print("Starting to get all runs")
+    await ctx.send("Starting to process all runs, please wait...")
+
+    output = subprocess.run(["python3", "../bsdlp/parse_logs.py", "-d", f"{runs_dir}", "-c", "True", "-nc", "True", "-r", f"{map_to_process}"], capture_output=True, text=True)
     print(output.stdout)
     for message in paginate(output.stdout):
         msg_to_send = ''.join(message)
