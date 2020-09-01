@@ -3,6 +3,7 @@
 #! /usr/bin/env python3
 
 #TODO: Improve markdown formatting
+#TODO: Show state on milestones
 #TODO: Offer option to show only specific milestone
 #TODO: Allow for roles changes/rankups on specific milestones
 
@@ -23,6 +24,7 @@ ROLE_ADMIN = os.getenv('ROLE_ADMIN')
 
 SSURL = "https://new.scoresaber.com/api/player/{}/full"
 BSD_LOGS_DIR = "../BSDlogs/"
+MILESTONES = "milestones.json"
 
 # UTILS (NON-BOT FUNCTIONS)
 
@@ -237,6 +239,46 @@ async def show_runs_map(ctx, map_to_process = ""):
     for message in paginate(output.stdout):
         msg_to_send = ''.join(message)
         await ctx.send(msg_to_send)
+
+
+@bot.command(name='milestones', help='Get state on your milestones')
+@commands.before_invoke(record_usage)
+async def milestones(ctx):
+
+    author = str(ctx.author.id)
+
+    id_accounts, ss_accounts = load_accounts()
+
+    ssacc = id_accounts.get(author)
+
+    if not ssacc:
+        await ctx.send("Account not registered. Please use !link YourSSaccountID to register. Exple : `!link 76561197964179685` ")
+        return
+    
+    with open(MILESTONES, "r") as mf:
+        mstones = json.load(mf)
+
+    runs_dir = f"{BSD_LOGS_DIR}{ssacc}"
+
+    try:
+        runs = os.listdir(runs_dir)
+    except FileNotFoundError:
+        await ctx.send("No runs saved for this account")
+        return
+
+    if not runs:
+        await ctx.send("No runs saved for this account")
+        return
+
+    print("Starting to get all runs")
+    await ctx.send("Starting to process all runs and matched milestones, please wait...")
+
+    #output = subprocess.run(["python3", "../bsdlp/parse_logs.py", "-d", f"{runs_dir}", "-c", "True", "-nc", "True"], capture_output=True, text=True)
+    #print(output.stdout)
+    #for message in paginate(output.stdout):
+    #    msg_to_send = ''.join(message)
+    #    await ctx.send(msg_to_send)
+
 
 @bot.command(name='link', help='Register with your SS account')
 @commands.before_invoke(record_usage)
