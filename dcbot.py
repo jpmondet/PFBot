@@ -47,7 +47,7 @@ def get_pname_from_ssid(ssid):
     else:
         return req.json()['playerInfo']['playerName']
 
-def paginate(lines, chars=2000):
+def paginate(lines, chars=1840):
     """ Paginate long outputs since discord limits to 2000 chars... """
     size = 0
     message = []
@@ -273,11 +273,12 @@ async def milestones(ctx):
     print("Starting to get all runs")
     await ctx.send("Starting to process all runs and matched milestones, please wait...")
 
-    #output = subprocess.run(["python3", "../bsdlp/parse_logs.py", "-d", f"{runs_dir}", "-c", "True", "-nc", "True"], capture_output=True, text=True)
-    #print(output.stdout)
-    #for message in paginate(output.stdout):
-    #    msg_to_send = ''.join(message)
-    #    await ctx.send(msg_to_send)
+    output = subprocess.run(["python3", "../bsdlp/parse_logs.py", "-d", f"{runs_dir}", "-c", "True", "-nc", "True", "-m", json.dumps(mstones)], capture_output=True, text=True)
+    print(output.stdout)
+    for message in paginate(output.stdout):
+        msg_to_send = ''.join(message)
+        await ctx.send(msg_to_send)
+    # TODO: Check in output which milestones were reached to give roles accordingly
 
 
 @bot.command(name='link', help='Register with your SS account')
