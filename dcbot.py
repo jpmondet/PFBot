@@ -47,17 +47,19 @@ def get_pname_from_ssid(ssid):
     else:
         return req.json()['playerInfo']['playerName']
 
-def paginate(lines, chars=1840):
+def paginate(lines, prefix='```css\n', suffix='```', chars=1850):
     """ Paginate long outputs since discord limits to 2000 chars... """
     size = 0
-    message = []
+    message = [prefix]
     for line in lines:
         if len(line) + size > chars:
+            message.append(suffix)
             yield message
-            message = []
+            message = [prefix]
             size = 0
         message.append(line)
         size += len(line)
+    message.append(suffix)
     yield message
 
 async def record_usage(ctx):
@@ -275,7 +277,7 @@ async def milestones(ctx):
 
     output = subprocess.run(["python3", "../bsdlp/parse_logs.py", "-d", f"{runs_dir}", "-c", "True", "-nc", "True", "-m", json.dumps(mstones)], capture_output=True, text=True)
     print(output.stdout)
-    for message in paginate(output.stdout):
+    for message in paginate(output.stdout, prefix='', suffix=''):
         msg_to_send = ''.join(message)
         await ctx.send(msg_to_send)
     # TODO: Check in output which milestones were reached to give roles accordingly
@@ -421,7 +423,7 @@ async def list_all_runs(ctx):
             if not pname:
                 pname = "Name not found"
 
-        output += f"**{pdir} ({pname})** \n"
+        output += f"{pdir} ({pname}) \n"
         pruns = os.listdir(f"{BSD_LOGS_DIR}/{pdir}")
         for prun in pruns:
             output += f"{prun} \n"
