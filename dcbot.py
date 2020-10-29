@@ -684,4 +684,24 @@ async def compare_specific(ctx, ssacc1 = "", run1 = "", ssacc2 = "", run2 = ""):
         msg_to_send = ''.join(message)
         await ctx.send(msg_to_send)
 
+@bot.command(name='snip', help='List snipz')
+@commands.has_role("restricted")
+@commands.before_invoke(record_usage)
+async def snip(ctx, flush = ""):
+
+    if flush == "flush":
+        output = subprocess.run(["rm", "../ssapi/maps_analysis/snipz"], capture_output=True, text=True)
+        print(output.stdout)
+        output = output.stdout
+    else:
+        print("Start getting the snipes...")
+        output = ""
+        with open("../ssapi/maps_analysis/snipz") as jsnip:
+            for line in jsnip.readlines():
+                output += line + "\n"
+
+    for message in paginate(output):
+        msg_to_send = ''.join(message)
+        await ctx.send(msg_to_send)
+
 bot.run(TOKEN)
