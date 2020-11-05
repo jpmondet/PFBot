@@ -697,7 +697,7 @@ async def snip(ctx, flush = ""):
         with open("../ssapi/maps_analysis/snipez.json", 'w') as jsnip:
             json.dump({},jsnip)
         # Restart watch program
-        output = subprocess.run(["kill", "-SIGALRM", "$(pgrep -f watch_feed)"], capture_output=True, text=True)
+        output = subprocess.run(["kill", "-SIGUSR1", "$(pgrep -f watch_feed)"], capture_output=True, text=True)
         print(output.stdout)
         output = output.stdout
 
