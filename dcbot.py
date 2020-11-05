@@ -690,9 +690,19 @@ async def compare_specific(ctx, ssacc1 = "", run1 = "", ssacc2 = "", run2 = ""):
 async def snip(ctx, flush = ""):
 
     if flush == "flush":
-        output = subprocess.run(["rm", "../ssapi/maps_analysis/snipz"], capture_output=True, text=True)
+        # Empty snipz
+        with open("../ssapi/maps_analysis/snipz", 'w') as jsnip:
+            pass
+        # Empty json
+        with open("../ssapi/maps_analysis/snipez.json", 'w') as jsnip:
+            json.dump({},jsnip)
+        # Restart watch program
+        output = subprocess.run(["kill", "-SIGALRM", "$(pgrep -f watch_feed)"], capture_output=True, text=True)
         print(output.stdout)
         output = output.stdout
+
+
+        output = "snip correctly flushed"
     else:
         print("Start getting the snipes...")
         output = ""
