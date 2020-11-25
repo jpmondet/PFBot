@@ -714,4 +714,18 @@ async def snip(ctx, flush = ""):
         msg_to_send = ''.join(message)
         await ctx.send(msg_to_send)
 
+@bot.command(name='overallstats', help='Overall analysis of ranked stats of a player')
+@commands.has_role("restricted")
+@commands.before_invoke(record_usage)
+async def overall_stats(ctx, ssacc = "76561197964179685"):
+
+    # Restart watch program
+    output = subprocess.run(["python3", "../ssapi/maps_analysis/process_player_maps.py", "-p", ssacc], capture_output=True, text=True)
+    print(output.stdout)
+    output = output.stdout
+
+    for message in paginate(output):
+        msg_to_send = ''.join(message)
+        await ctx.send(msg_to_send)
+
 bot.run(TOKEN)
