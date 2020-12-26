@@ -728,4 +728,16 @@ async def overall_stats(ctx, ssacc = "76561197964179685"):
         msg_to_send = ''.join(message)
         await ctx.send(msg_to_send)
 
+@bot.command(name='ssupdates', help='Get latest scoresaber updates from its trello board')
+@commands.before_invoke(record_usage)
+async def ssupdates(ctx):
+
+    output = subprocess.run(["python3", "../ssapi/sstrello/last_updates.py"], capture_output=True, text=True)
+    print(output.stdout)
+    output = output.stdout
+
+    for message in paginate(output):
+        msg_to_send = ''.join(message)
+        await ctx.send(msg_to_send)
+
 bot.run(TOKEN)
