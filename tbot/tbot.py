@@ -6,7 +6,7 @@ import asyncio
 from dotenv import load_dotenv
 from twitchio.ext import commands
 from discord.ext import tasks
-#from discord import Client
+from discord import Client as dClient
 from discord.ext import commands as dcommands
 
 load_dotenv()
@@ -19,29 +19,10 @@ COMPACT_NICK: str = getenv('COMPACT_NICK')
 BOT_NICK: str = getenv('BOT_NICK')
 DISCORD_CHANNEL: str = getenv('DISCORD_CHANNEL')
 DISCORD_TOKEN: str = getenv('DISCORD_TOKEN')
+DISCORD_ID: str = getenv('DISCORD_ID')
 
-DISCORD_CLIENT = dcommands.Bot(command_prefix='!')
-
-async def client_start():
-    #await DISCORD_CLIENT.start(DISCORD_TOKEN)
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(DISCORD_CLIENT.start(DISCORD_TOKEN))
-
-def client_stop():
-    DISCORD_CLIENT.close()
-
-@DISCORD_CLIENT.event
-async def on_ready():
-    discord_channel = DISCORD_CLIENT.get_channel(DISCORD_CHANNEL)
-    discord_channel.send('test')
-
-async def send_to_discord(msg: str):
-    #await client_start()
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(DISCORD_CLIENT.start(DISCORD_TOKEN))
-    discord_channel = DISCORD_CLIENT.get_channel(DISCORD_CHANNEL)
-    discord_channel.send(msg)
-    #client_stop()
+DISCORD_CLIENT = dClient()
+TWITCH_CHANNEL = None
 
 class Bot(commands.Bot):
 
@@ -55,16 +36,20 @@ class Bot(commands.Bot):
         )
         self.first = True
         self.nuser = []
-        self.channel = None
+        self.discord_channel = None
 
     # Events don't need decorators when subclassed
     async def event_ready(self):
+        await asyncio.sleep(5)
         print(f'Ready | {self.nick}')
-        self.infoloop.start()
+        #self.infoloop.start()
+        global TWITCH_CHANNEL
+        TWITCH_CHANNEL = self.get_channel(BOT_NICK)
+        self.discord_channel = DISCORD_CLIENT.get_channel(int(DISCORD_CHANNEL))
 
     async def event_message(self, msg):
         print(msg.author.name, ':', msg.content)
-        #await send_to_discord(f"{msg.author.name}: {msg.content}")
+        await self.discord_channel.send(f"**{msg.author.name}**: {msg.content}")
         if msg.content[0] != '!':
             if msg.author.name == BOT_NICK:
                 pass
@@ -88,14 +73,24 @@ class Bot(commands.Bot):
     @tasks.loop(minutes=5)
     async def infoloop(self):
         channel = self.get_channel(BOT_NICK)
-        await channel.send(f"Heya ! I'm {COMPACT_NICK}, I'm not using a mic right now and I'm not very fast at writing, but I'll answer eventually, don't worry x)")
-        await channel.send("Meanwhile, please enjoy the music ^^")
+        await channel.send(f"Heya ! I'm {COMPACT_NICK}, I'm not using a mic right now and I'm not very fast at writing, but I'll answer eventually, don't worry x) \nMeanwhile, please enjoy the music ^^")
+
+
+@DISCORD_CLIENT.event
+async def on_ready():
+    await asyncio.sleep(5)
+    print("Discord bot ready!")
+
+@DISCORD_CLIENT.event
+async def on_message(ctx):
+    if ctx.author.id == int(DISCORD_ID):
+        print(ctx)
+        await TWITCH_CHANNEL.send(ctx.content)
 
 def main():
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(DISCORD_CLIENT.start(DISCORD_TOKEN))
     bot = Bot()
-    bot.run()
+    loop.run_until_complete(asyncio.wait((DISCORD_CLIENT.start(DISCORD_TOKEN), bot.start())))
 
 if __name__ == "__main__":
     main()
