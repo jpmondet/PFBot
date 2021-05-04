@@ -58,12 +58,15 @@ class Bot(commands.Bot):
             else:
                 self.nuser.append(msg.author.id)
                 channel = self.get_channel(BOT_NICK)
-                await channel.send(f"Hey @{msg.author.name} ! Lil' busy right now, I'm catching up with your message ASAP :D")
+                await channel.send(f"Hey @{msg.author.name} ! :D
+If you want, you can ask for a song with !bsr code and I'll play it if it's not too speedy. Else, enjoy the music! ")
         else:
             await self.handle_commands(msg)
 
     @commands.command(name='bsr')
-    async def bsr_cmd(self, ctx):
+    async def bsr_cmd(self, ctx, code):
+        # TODO: Get song from bsaver with code
+        # If too speedy, don't do it.
         await ctx.send(f"Sorry {ctx.author.name}, I'm not accepting requests to avoid injuries (old joints here xD )")
 
     @commands.command(name='info')
